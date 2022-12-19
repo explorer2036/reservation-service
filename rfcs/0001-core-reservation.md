@@ -89,6 +89,9 @@ message QueryRequest {
     google.protobuf.Timestamp end_time = 5 ;
 }
 
+message WatchRequest {
+}
+
 service ReservationService {
     rpc reserve(ReserveRequest) returns (ReserveResponse);
     rpc confirm(ConfirmRequest) returns (ConfirmResponse);
@@ -96,19 +99,33 @@ service ReservationService {
     rpc cancel(CancelRequest) returns (CancelResponse);
     rpc get(GetRequest) returns (GetResponse);
     rpc query(QueryRequest) returns (stream Reservation);
+    // another system could monitor reservation events
+    rpc watch(WatchRequest) returns (stream Reservation);
 }
 ```
 
-Explain the proposal as if it was already included in the language and you were teaching it to another Rust programmer. That generally means:
+### Database schema
 
-- Introducing new named concepts.
-- Explaining the feature largely in terms of examples.
-- Explaining how Rust programmers should *think* about the feature, and how it should impact the way they use Rust. It should explain the impact as concretely as possible.
-- If applicable, provide sample error messages, deprecation warnings, or migration guidance.
-- If applicable, describe the differences between teaching this to existing Rust programmers and new Rust programmers.
-- Discuss how this impacts the ability to read, understand, and maintain Rust code. Code is read and modified far more often than written; will the proposed feature make code easier to maintain?
+We use postgres as the database. Below is the schema:
 
-For implementation-oriented RFCs (e.g. for compiler internals), this section should focus on how compiler contributors should think about the change, and give examples of its concrete impact. For policy RFCs, this section should provide an example-driven introduction to the policy, and explain its impact in concrete terms.
+```sql
+CREATE TYPE reservation_status AS ENUM ('unknown', 'pending', 'confirmed', 'blocked');
+
+CREATE TABLE reservation (
+    id uuid NOT NULL DEFAULT uuid_generate_v4(),
+    user_id varchar(64) NOT NULL,
+    status reservation_status NOT NULL DEFAULT 'pending',
+    resource_id varchar(64) NOT NULL,
+    span tstzrange NOT NULL,
+    note text,
+    CONSTRAINT reservation_pk PRIMARY KEY (id),
+    CONSTRAINT reservation_conflict EXCLUDE USING gist (resource_id WITH =, span WITH &&)
+);
+CREATE INDEX reservation_resource_id_idx ON reservation (resource_id);
+CREATE INDEX reservation_user_id_idx ON reservation (user_id);
+
+CREATE OR REPLACE FUNCTION query(uid text, rid text, duration tstzrange) RETURNS TABLE reservation AS $$ $$ LANGUAGE plpgsql;
+```
 
 ## Reference-level explanation
 
