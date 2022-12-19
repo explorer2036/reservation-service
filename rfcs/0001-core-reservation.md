@@ -127,6 +127,7 @@ CREATE INDEX reservation_user_id_idx ON reservation (user_id);
 CREATE OR REPLACE FUNCTION query(uid text, rid text, duration tstzrange) RETURNS TABLE reservation AS $$ $$ LANGUAGE plpgsql;
 ```
 
+
 ## Reference-level explanation
 
 This is the technical portion of the RFC. Explain the design in sufficient detail that:
