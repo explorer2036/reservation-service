@@ -1107,7 +1107,10 @@ dependencies = [
 name = "reservation"
 version = "0.1.0"
 dependencies = [
+ "abi",
+ "async-trait",
  "sqlx",
+ "thiserror",
 ]
 
 [[package]]
