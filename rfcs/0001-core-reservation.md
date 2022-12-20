@@ -17,10 +17,6 @@ We need a common solution for various reservation requirements: 1) calendar book
 
 ![architecture_draft](./architecture_draft.png)
 
-```text
-sudo vmhgfs-fuse .host:/ /mnt/hgfs/ -o allow_other -o uid=1000 -o gid=1000 -o umask=0002
-```
-
 ### Service interface
 
 We would use gRPC as a service interface. Below is the proto definition:
@@ -90,12 +86,18 @@ message GetResponse {
 message QueryRequest {
     string resource_id = 1;
     string user_id = 2;
+    // use status to filter result. If UNKNOWN, return all reservations
     ReservationStatus status = 3;
     google.protobuf.Timestamp start_time = 4;
     google.protobuf.Timestamp end_time = 5 ;
 }
 
 message WatchRequest {
+}
+
+message WatchResponse {
+    int8 event = 1;
+    Reservation reservation = 2;
 }
 
 service ReservationService {
@@ -116,6 +118,7 @@ We use postgres as the database. Below is the schema:
 
 ```sql
 CREATE TYPE reservation_status AS ENUM ('unknown', 'pending', 'confirmed', 'blocked');
+CREATE TYPE reservation_event AS ENUM ('unknown', 'create', 'update', 'delete');
 
 CREATE TABLE reservation (
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -130,7 +133,43 @@ CREATE TABLE reservation (
 CREATE INDEX reservation_resource_id_idx ON reservation (resource_id);
 CREATE INDEX reservation_user_id_idx ON reservation (user_id);
 
+-- if user_id is null, find all reservations within duration for the resource
+-- if resource_id is null, find all reservations within duration for the user
+-- if both are null, find all reservations within duration
+-- if both set, find all reservations within duration for the resource and user
 CREATE OR REPLACE FUNCTION query(uid text, rid text, duration tstzrange) RETURNS TABLE reservation AS $$ $$ LANGUAGE plpgsql;
+
+-- reservation event queue
+CREATE TABLE reservation_events (
+    id SERIAL NOT NULL,
+    reservation_id uuid NOT NULL,
+    event reservation_event NOT NULL
+);
+
+-- trigger for add/update/delete a reservation
+CREATE OR REPLACE FUNCTION reservations_trigger() RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        -- update reservation_events
+        INSERT INTO reservation_events (reservation_id, event) VALUES (NEW.id, 'create');
+    ELSIF TG_OP = 'UPDATE' THEN
+        -- if status changed, update reservation_events
+        IF OLD.status <> NEW.status THEN
+            INSERT INTO reservation_events (reservation_id, event) VALUES (NEW.id, 'update');
+        END IF;
+    ELSIF TG_OP = 'DELETE' THEN
+        -- update reservation_events
+        INSERT INTO reservation_events (reservation_id, event) VALUES (OLD.id, 'delete');
+    END IF;
+    -- notify a channel called reservation_event
+    NOTIFY reservation_event;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER reservations_trigger
+    AFTER INSERT OR UPDATE OR DELETE ON reservations
+    FOR EACH ROW EXECUTE PROCEDURE reservations_trigger();
 ```
 
 ## Reference-level explanation
@@ -151,7 +190,10 @@ N/A
 
 ## Unresolved questions
 
-N/A
+- how to handle repeated reservation? - is this more or less a business logic which shouldn't be put into this layer? (non-goal: we consider this is a business logic and should be handled by the caller)
+- if load is big, we may use an external queue for recording changes.
+- we haven't considered tracking/observability/deployment yet.
+- query performance might be an issue - need to revisit the index and also consider using cache.
 
 ## Future possibilities
 
