@@ -15,6 +15,12 @@ We need a common solution for various reservation requirements: 1) calendar book
 
 ### Basic Architecture
 
+![architecture_draft](./architecture_draft.png)
+
+```text
+sudo vmhgfs-fuse .host:/ /mnt/hgfs/ -o allow_other -o uid=1000 -o gid=1000 -o umask=0002
+```
+
 ### Service interface
 
 We would use gRPC as a service interface. Below is the proto definition:
@@ -126,7 +132,6 @@ CREATE INDEX reservation_user_id_idx ON reservation (user_id);
 
 CREATE OR REPLACE FUNCTION query(uid text, rid text, duration tstzrange) RETURNS TABLE reservation AS $$ $$ LANGUAGE plpgsql;
 ```
-
 
 ## Reference-level explanation
 
