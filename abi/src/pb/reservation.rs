@@ -4,8 +4,8 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Reservation {
     /// unique id for the reservation, if put into ReserveRequest, id should be empty
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "1")]
+    pub id: i64,
     /// user id for the reservation
     #[prost(string, tag = "2")]
     pub user_id: ::prost::alloc::string::String,
@@ -57,8 +57,8 @@ pub struct UpdateResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ConfirmRequest {
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "1")]
+    pub id: i64,
 }
 /// Confirmed reservation will be returned in ConfirmResponse
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -71,8 +71,8 @@ pub struct ConfirmResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CancelRequest {
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "1")]
+    pub id: i64,
 }
 /// Canceled reservation will be returned in CancelResponse
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -85,8 +85,8 @@ pub struct CancelResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetRequest {
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "1")]
+    pub id: i64,
 }
 /// Reservation will be returned in GetResponse
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -189,9 +189,7 @@ pub struct ListenResponse {
     pub reservation: ::core::option::Option<Reservation>,
 }
 /// reservation status for a given time period
-#[derive(
-    sqlx::Type, Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ReservationStatus {
     Unknown = 0,

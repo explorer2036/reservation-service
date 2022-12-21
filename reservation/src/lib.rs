@@ -11,7 +11,10 @@ pub struct ReservationStore {
 #[async_trait]
 pub trait Reservation {
     /// make a reservation
-    async fn reserve(&self, reservation: abi::Reservation) -> Result<abi::Reservation, abi::Error>;
+    async fn reserve(
+        &self,
+        mut reservation: abi::Reservation,
+    ) -> Result<abi::Reservation, abi::Error>;
     /// change reservation status to confirmed if the current status is pending
     async fn confirm(&self, id: String) -> Result<abi::Reservation, abi::Error>;
     /// update note

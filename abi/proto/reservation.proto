@@ -23,7 +23,7 @@ enum ReservationEvent {
 // if ListenResponse event is DELETE, only id will be populated
 message Reservation {
     // unique id for the reservation, if put into ReserveRequest, id should be empty
-    string id = 1;
+    int64 id = 1;
     // user id for the reservation
     string user_id = 2;
     // reservation status, used for different purpose
@@ -60,7 +60,7 @@ message UpdateResponse {
 
 // To change a reservation from pending to confirmed, send a ConfirmRequest
 message ConfirmRequest {
-    string id = 1;
+    int64 id = 1;
 }
 
 // Confirmed reservation will be returned in ConfirmResponse
@@ -70,7 +70,7 @@ message ConfirmResponse {
 
 // To cancel a reservation, send a CancelRequest
 message CancelRequest {
-    string id = 1;
+    int64 id = 1;
 }
 
 // Canceled reservation will be returned in CancelResponse
@@ -80,7 +80,7 @@ message CancelResponse {
 
 // To get a reservation, send a GetRequest
 message GetRequest {
-    string id = 1;
+    int64 id = 1;
 }
 
 // Reservation will be returned in GetResponse

@@ -1,5 +1,6 @@
 mod error;
 mod pb;
+mod types;
 
 pub use error::*;
 pub use pb::*;
@@ -17,4 +18,11 @@ pub fn convert_to_utc_time(ts: Option<&Timestamp>) -> DateTime<Utc> {
         },
         Utc,
     )
+}
+
+pub fn convert_to_timestamp(dt: DateTime<Utc>) -> Timestamp {
+    Timestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    }
 }
