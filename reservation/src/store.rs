@@ -70,6 +70,7 @@ mod tests {
     use std::path::Path;
 
     use super::*;
+    use abi::{ReservationConflict, ReservationConflictInfo, ReservationWindow};
     use sqlx::PgPool;
     use sqlx_db_tester::TestPg;
 
@@ -77,51 +78,47 @@ mod tests {
     async fn reserve_should_work_for_valid_window() {
         let db = init_db();
         let pool = db.get_pool().await;
-        let (reservation, _store) = make_alice_reservation(pool).await;
+        let (reservation, _store) = make_alon_reservation(pool).await;
         assert!(reservation.id > 0);
-        // let store = ReservationStore::new(migrated_pool.clone());
-        // let reservation = abi::Reservation::new_pending(
-        //     "alon".to_string(),
-        //     "ocean-view-room-713".to_string(),
-        //     "2022-12-25T15:00:00-0700".parse().unwrap(),
-        //     "2022-12-28T15:00:00-0700".parse().unwrap(),
-        //     "note".to_string(),
-        // );
-        // let result = store.reserve(reservation).await.unwrap();
-        // assert!(result.id > 0)
     }
 
     #[tokio::test]
     async fn reserve_conflict_reservation_should_reject() {
-        // let store = ReservationStore::new(migrated_pool.clone());
-        // let r1 = abi::Reservation::new_pending(
-        //     "alon".to_string(),
-        //     "ocean-view-room-713".to_string(),
-        //     "2022-12-25T15:00:00-0700".parse().unwrap(),
-        //     "2022-12-28T15:00:00-0700".parse().unwrap(),
-        //     "note".to_string(),
-        // );
-        // let r2 = abi::Reservation::new_pending(
-        //     "belayu".to_string(),
-        //     "ocean-view-room-713".to_string(),
-        //     "2022-12-26T15:00:00-0700".parse().unwrap(),
-        //     "2022-12-30T15:00:00-0700".parse().unwrap(),
-        //     "note".to_string(),
-        // );
-        // let _ = store.reserve(r1).await.unwrap();
-        // let err = store.reserve(r2).await.unwrap_err();
-        // println!("{:?}", err);
+        let db = init_db();
+        let pool = db.get_pool().await;
+        let (_r1, s1) = make_alon_reservation(pool.clone()).await;
+        let r2 = abi::Reservation::new_pending(
+            "alon".to_string(),
+            "ocean-view-room-711".to_string(),
+            "2022-12-26T15:00:00-0700".parse().unwrap(),
+            "2022-12-30T15:00:00-0700".parse().unwrap(),
+            "note".to_string(),
+        );
+        let err = s1.reserve(r2).await.unwrap_err();
+        let info = ReservationConflictInfo::Parsed(ReservationConflict {
+            new: ReservationWindow {
+                rid: "ocean-view-room-711".to_string(),
+                start: "2022-12-26T15:00:00-0700".parse().unwrap(),
+                end: "2022-12-30T15:00:00-0700".parse().unwrap(),
+            },
+            old: ReservationWindow {
+                rid: "ocean-view-room-711".to_string(),
+                start: "2022-12-25T15:00:00-0700".parse().unwrap(),
+                end: "2022-12-28T15:00:00-0700".parse().unwrap(),
+            },
+        });
+        assert_eq!(err, abi::Error::ConflictReservation(info));
     }
 
     // private none test functions
     fn init_db() -> TestPg {
         TestPg::new(
-            "postgres://postgres:123456@localhost:5432/postgres".to_string(),
+            "postgres://postgres:123456@localhost:5432".to_string(),
             Path::new("../migrations"),
         )
     }
 
-    async fn _make_alon_reservation(pool: PgPool) -> (abi::Reservation, ReservationStore) {
+    async fn make_alon_reservation(pool: PgPool) -> (abi::Reservation, ReservationStore) {
         make_reservation(
             pool,
             "alon",
@@ -133,7 +130,7 @@ mod tests {
         .await
     }
 
-    async fn make_alice_reservation(pool: PgPool) -> (abi::Reservation, ReservationStore) {
+    async fn _make_alice_reservation(pool: PgPool) -> (abi::Reservation, ReservationStore) {
         make_reservation(
             pool,
             "alice",
