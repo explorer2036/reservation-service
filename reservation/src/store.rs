@@ -67,41 +67,100 @@ impl ReservationStore {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::path::Path;
 
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
+    use super::*;
+    use sqlx::PgPool;
+    use sqlx_db_tester::TestPg;
+
+    #[tokio::test]
     async fn reserve_should_work_for_valid_window() {
-        let store = ReservationStore::new(migrated_pool.clone());
-        let reservation = abi::Reservation::new_pending(
-            "alon".to_string(),
-            "ocean-view-room-713".to_string(),
-            "2022-12-25T15:00:00-0700".parse().unwrap(),
-            "2022-12-28T15:00:00-0700".parse().unwrap(),
-            "note".to_string(),
-        );
-        let result = store.reserve(reservation).await.unwrap();
-        assert!(result.id > 0)
+        let db = init_db();
+        let pool = db.get_pool().await;
+        let (reservation, _store) = make_alice_reservation(pool).await;
+        assert!(reservation.id > 0);
+        // let store = ReservationStore::new(migrated_pool.clone());
+        // let reservation = abi::Reservation::new_pending(
+        //     "alon".to_string(),
+        //     "ocean-view-room-713".to_string(),
+        //     "2022-12-25T15:00:00-0700".parse().unwrap(),
+        //     "2022-12-28T15:00:00-0700".parse().unwrap(),
+        //     "note".to_string(),
+        // );
+        // let result = store.reserve(reservation).await.unwrap();
+        // assert!(result.id > 0)
     }
 
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
+    #[tokio::test]
     async fn reserve_conflict_reservation_should_reject() {
-        let store = ReservationStore::new(migrated_pool.clone());
-        let r1 = abi::Reservation::new_pending(
-            "alon".to_string(),
-            "ocean-view-room-713".to_string(),
-            "2022-12-25T15:00:00-0700".parse().unwrap(),
-            "2022-12-28T15:00:00-0700".parse().unwrap(),
-            "note".to_string(),
+        // let store = ReservationStore::new(migrated_pool.clone());
+        // let r1 = abi::Reservation::new_pending(
+        //     "alon".to_string(),
+        //     "ocean-view-room-713".to_string(),
+        //     "2022-12-25T15:00:00-0700".parse().unwrap(),
+        //     "2022-12-28T15:00:00-0700".parse().unwrap(),
+        //     "note".to_string(),
+        // );
+        // let r2 = abi::Reservation::new_pending(
+        //     "belayu".to_string(),
+        //     "ocean-view-room-713".to_string(),
+        //     "2022-12-26T15:00:00-0700".parse().unwrap(),
+        //     "2022-12-30T15:00:00-0700".parse().unwrap(),
+        //     "note".to_string(),
+        // );
+        // let _ = store.reserve(r1).await.unwrap();
+        // let err = store.reserve(r2).await.unwrap_err();
+        // println!("{:?}", err);
+    }
+
+    // private none test functions
+    fn init_db() -> TestPg {
+        TestPg::new(
+            "postgres://postgres:123456@localhost:5432/postgres".to_string(),
+            Path::new("../migrations"),
+        )
+    }
+
+    async fn _make_alon_reservation(pool: PgPool) -> (abi::Reservation, ReservationStore) {
+        make_reservation(
+            pool,
+            "alon",
+            "ocean-view-room-711",
+            "2022-12-25T15:00:00-0700",
+            "2022-12-28T15:00:00-0700",
+            "note",
+        )
+        .await
+    }
+
+    async fn make_alice_reservation(pool: PgPool) -> (abi::Reservation, ReservationStore) {
+        make_reservation(
+            pool,
+            "alice",
+            "ocean-view-room-713",
+            "2023-01-25T15:00:00-0700",
+            "2023-02-28T15:00:00-0700",
+            "note",
+        )
+        .await
+    }
+
+    async fn make_reservation(
+        pool: PgPool,
+        uid: &str,
+        rid: &str,
+        start: &str,
+        end: &str,
+        note: &str,
+    ) -> (abi::Reservation, ReservationStore) {
+        let store = ReservationStore::new(pool.clone());
+        let reservation = abi::Reservation::new_pending(
+            uid,
+            rid,
+            start.parse().unwrap(),
+            end.parse().unwrap(),
+            note,
         );
-        let r2 = abi::Reservation::new_pending(
-            "belayu".to_string(),
-            "ocean-view-room-713".to_string(),
-            "2022-12-26T15:00:00-0700".parse().unwrap(),
-            "2022-12-30T15:00:00-0700".parse().unwrap(),
-            "note".to_string(),
-        );
-        let _ = store.reserve(r1).await.unwrap();
-        let err = store.reserve(r2).await.unwrap_err();
-        println!("{:?}", err);
+        (store.reserve(reservation).await.unwrap(), store)
     }
 }
