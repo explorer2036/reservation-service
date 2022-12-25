@@ -28,19 +28,23 @@ impl Reservation for ReservationStore {
         Ok(reservation)
     }
 
-    async fn confirm(&self, _id: String) -> Result<abi::Reservation, abi::Error> {
+    async fn confirm(&self, id: i64) -> Result<abi::Reservation, abi::Error> {
+        // if the current status is pending, confirm the reservation
+        let sql = "UPDATE reservations SET status = 'confirmed' WHERE id = $1 AND status = 'pending' RETURNING *";
+        let reservation: abi::Reservation =
+            sqlx::query_as(sql).bind(id).fetch_one(&self.pool).await?;
+        Ok(reservation)
+    }
+
+    async fn update(&self, _id: i64, _note: String) -> Result<abi::Reservation, abi::Error> {
         todo!()
     }
 
-    async fn update(&self, _id: String, _note: String) -> Result<abi::Reservation, abi::Error> {
+    async fn delete(&self, _id: i64) -> Result<abi::Reservation, abi::Error> {
         todo!()
     }
 
-    async fn delete(&self, _id: String) -> Result<abi::Reservation, abi::Error> {
-        todo!()
-    }
-
-    async fn get(&self, _id: String) -> Result<abi::Reservation, abi::Error> {
+    async fn get(&self, _id: i64) -> Result<abi::Reservation, abi::Error> {
         todo!()
     }
 
@@ -108,6 +112,15 @@ mod tests {
             },
         });
         assert_eq!(err, abi::Error::ConflictReservation(info));
+    }
+
+    #[tokio::test]
+    async fn confirm_reservation_should_work() {
+        let db = init_db();
+        let pool = db.get_pool().await;
+        let (reservation, store) = make_alon_reservation(pool.clone()).await;
+        let result = store.confirm(reservation.id).await.unwrap();
+        assert_eq!(result.status, abi::ReservationStatus::Confirmed as i32);
     }
 
     // private none test functions

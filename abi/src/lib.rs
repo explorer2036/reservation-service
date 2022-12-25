@@ -8,6 +8,15 @@ pub use pb::*;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use prost_types::Timestamp;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "reservation_status", rename_all = "lowercase")]
+pub enum SqlxReservationStatus {
+    Unknown,
+    Pending,
+    Confirmed,
+    Blocked,
+}
+
 pub fn convert_to_utc_time(ts: Option<&Timestamp>) -> DateTime<Utc> {
     DateTime::<Utc>::from_utc(
         {

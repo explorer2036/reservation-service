@@ -16,13 +16,13 @@ pub trait Reservation {
         mut reservation: abi::Reservation,
     ) -> Result<abi::Reservation, abi::Error>;
     /// change reservation status to confirmed if the current status is pending
-    async fn confirm(&self, id: String) -> Result<abi::Reservation, abi::Error>;
+    async fn confirm(&self, id: i64) -> Result<abi::Reservation, abi::Error>;
     /// update note
-    async fn update(&self, id: String, note: String) -> Result<abi::Reservation, abi::Error>;
+    async fn update(&self, id: i64, note: String) -> Result<abi::Reservation, abi::Error>;
     /// delete reservation
-    async fn delete(&self, id: String) -> Result<abi::Reservation, abi::Error>;
+    async fn delete(&self, id: i64) -> Result<abi::Reservation, abi::Error>;
     /// get reservation by id
-    async fn get(&self, id: String) -> Result<abi::Reservation, abi::Error>;
+    async fn get(&self, id: i64) -> Result<abi::Reservation, abi::Error>;
     /// query reservations
     async fn query(
         &self,
