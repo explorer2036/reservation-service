@@ -96,6 +96,8 @@ pub struct GetResponse {
     pub reservation: ::core::option::Option<Reservation>,
 }
 /// query reservations with user id, resource id, start time, end time, and status
+#[derive(derive_builder::Builder)]
+#[builder(setter(into, strip_option), default)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReservationQuery {
@@ -126,6 +128,8 @@ pub struct QueryRequest {
     pub query: ::core::option::Option<ReservationQuery>,
 }
 /// query reservations, order by reservation id
+#[derive(derive_builder::Builder)]
+#[builder(setter(into, strip_option), default)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReservationFilter {
@@ -189,7 +193,9 @@ pub struct ListenResponse {
     pub reservation: ::core::option::Option<Reservation>,
 }
 /// reservation status for a given time period
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[derive(
+    sqlx::Type, Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration,
+)]
 #[repr(i32)]
 pub enum ReservationStatus {
     Unknown = 0,

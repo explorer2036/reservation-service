@@ -21,7 +21,7 @@ pub enum Error {
     #[error("Conflict reservation")]
     ConflictReservation(ReservationConflictInfo),
 
-    #[error("No reservation found by the given condition")]
+    #[error("No reservation found")]
     NotFound,
 
     #[error("Invalid reservation id: {0}")]

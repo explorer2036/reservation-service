@@ -8,6 +8,10 @@ pub use pb::*;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use prost_types::Timestamp;
 
+pub trait ToSql {
+    fn to_sql(&self) -> String;
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "reservation_status", rename_all = "lowercase")]
 pub enum SqlxReservationStatus {

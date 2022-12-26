@@ -9,12 +9,13 @@ use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};
 
 impl Reservation {
-    pub fn new_pending(
+    pub fn new(
         uid: impl Into<String>,
         rid: impl Into<String>,
         start: DateTime<FixedOffset>,
         end: DateTime<FixedOffset>,
         note: impl Into<String>,
+        status: ReservationStatus,
     ) -> Self {
         Self {
             id: 0,
@@ -23,7 +24,7 @@ impl Reservation {
             start: Some(convert_to_timestamp(start.with_timezone(&Utc))),
             end: Some(convert_to_timestamp(end.with_timezone(&Utc))),
             note: note.into(),
-            status: ReservationStatus::Pending as i32,
+            status: status as i32,
         }
     }
 

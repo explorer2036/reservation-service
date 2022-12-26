@@ -2,6 +2,7 @@ mod store;
 
 use async_trait::async_trait;
 use sqlx::PgPool;
+use tokio::sync::mpsc;
 
 #[derive(Debug)]
 pub struct ReservationStore {
@@ -20,14 +21,14 @@ pub trait Reservation {
     /// update note
     async fn update(&self, id: i64, note: String) -> Result<abi::Reservation, abi::Error>;
     /// delete reservation
-    async fn delete(&self, id: i64) -> Result<abi::Reservation, abi::Error>;
+    async fn delete(&self, id: i64) -> Result<(), abi::Error>;
     /// get reservation by id
     async fn get(&self, id: i64) -> Result<abi::Reservation, abi::Error>;
     /// query reservations
     async fn query(
         &self,
         query: abi::ReservationQuery,
-    ) -> Result<Vec<abi::Reservation>, abi::Error>;
+    ) -> mpsc::Receiver<Result<abi::Reservation, abi::Error>>;
     /// query reservations order by reservation id
     async fn filter(
         &self,
