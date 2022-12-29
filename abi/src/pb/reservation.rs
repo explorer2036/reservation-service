@@ -98,6 +98,7 @@ pub struct GetResponse {
 /// query reservations with user id, resource id, start time, end time, and status
 #[derive(derive_builder::Builder)]
 #[builder(setter(into, strip_option), default)]
+#[builder(build_fn(name = "private_build"))]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReservationQuery {
@@ -130,6 +131,7 @@ pub struct QueryRequest {
 /// query reservations, order by reservation id
 #[derive(derive_builder::Builder)]
 #[builder(setter(into, strip_option), default)]
+#[builder(build_fn(name = "private_build"))]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReservationFilter {
@@ -142,10 +144,12 @@ pub struct ReservationFilter {
     /// use status to filter result. If UNKNOWN, return all reservations
     #[prost(enumeration = "ReservationStatus", tag = "3")]
     pub status: i32,
-    #[prost(int64, tag = "4")]
-    pub cursor: i64,
+    #[prost(int64, optional, tag = "4")]
+    #[builder(setter(into, strip_option), default)]
+    pub cursor: ::core::option::Option<i64>,
     /// page size for the query
     #[prost(int64, tag = "5")]
+    #[builder(setter(into), default = "10")]
     pub page_size: i64,
     /// sort direction
     #[prost(bool, tag = "6")]
@@ -158,24 +162,11 @@ pub struct FilterRequest {
     #[prost(message, optional, tag = "1")]
     pub filter: ::core::option::Option<ReservationFilter>,
 }
-/// filter pager info
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FilterPager {
-    #[prost(int64, tag = "1")]
-    pub prev: i64,
-    #[prost(int64, tag = "2")]
-    pub next: i64,
-    #[prost(int64, tag = "3")]
-    pub total: i64,
-}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FilterResponse {
     #[prost(message, repeated, tag = "1")]
     pub reservations: ::prost::alloc::vec::Vec<Reservation>,
-    #[prost(message, optional, tag = "2")]
-    pub pager: ::core::option::Option<FilterPager>,
 }
 /// Client can listen to reservation events by sending a ListenRequest
 #[allow(clippy::derive_partial_eq_without_eq)]

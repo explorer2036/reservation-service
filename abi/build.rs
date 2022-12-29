@@ -12,6 +12,21 @@ fn main() {
             ],
             None,
         )
+        .with_type_attributes(
+            &[
+                "reservation.ReservationQuery",
+                "reservation.ReservationFilter",
+            ],
+            &[r#"#[builder(build_fn(name = "private_build"))]"#],
+        )
+        .with_field_attributes(
+            &["page_size"],
+            &["#[builder(setter(into), default = \"10\")]"],
+        )
+        .with_field_attributes(
+            &["cursor"],
+            &["#[builder(setter(into, strip_option), default)]"],
+        )
         .compile(&["proto/reservation.proto"], &["proto"])
         .unwrap();
     Command::new("cargo").arg("fmt").output().unwrap();

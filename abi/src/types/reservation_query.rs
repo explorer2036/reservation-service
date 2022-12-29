@@ -1,12 +1,46 @@
 use prost_types::Timestamp;
 
-use crate::{convert_to_utc_time, ReservationQuery, ReservationStatus, ToSql};
+use crate::{
+    convert_to_utc_time, Error, Normalizer, ReservationQuery, ReservationQueryBuilder,
+    ReservationStatus, ToSql, Validator,
+};
+
+impl ReservationQueryBuilder {
+    pub fn build(&self) -> Result<ReservationQuery, Error> {
+        let mut query = self
+            .private_build()
+            .expect("failed to build ReservationQuery");
+        query.normalize()?;
+        Ok(query)
+    }
+}
 
 impl ReservationQuery {
     pub fn get_status(&self) -> ReservationStatus {
         ReservationStatus::from_i32(self.status).unwrap()
     }
 }
+
+impl Validator for ReservationQuery {
+    fn validate(&self) -> Result<(), Error> {
+        ReservationStatus::from_i32(self.status).ok_or(Error::InvalidStatus(self.status))?;
+        if let (Some(start), Some(end)) = (self.start.as_ref(), self.end.as_ref()) {
+            if start.seconds >= end.seconds {
+                return Err(Error::InvalidTime);
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Normalizer for ReservationQuery {
+    fn do_normalize(&mut self) {
+        if self.status == ReservationStatus::Unknown as i32 {
+            self.status = ReservationStatus::Pending as i32;
+        }
+    }
+}
+
 impl ToSql for ReservationQuery {
     fn to_sql(&self) -> String {
         let status = self.get_status();
@@ -46,13 +80,13 @@ mod tests {
     use crate::ReservationQueryBuilder;
 
     #[test]
-    fn query_should_generate_valid_sql() {
+    fn query_should_generate_correct_sql() {
         let query = ReservationQueryBuilder::default()
             .user_id("alon")
             .build()
             .unwrap();
         let sql = query.to_sql();
-        assert_eq!(sql, "SELECT * FROM reservations WHERE tstzrange('-infinity', 'infinity') @> timespan AND status = 'unknown'::reservation_status AND user_id = 'alon' ORDER BY lower(timespan) ASC");
+        assert_eq!(sql, "SELECT * FROM reservations WHERE tstzrange('-infinity', 'infinity') @> timespan AND status = 'pending'::reservation_status AND user_id = 'alon' ORDER BY lower(timespan) ASC");
 
         let query = ReservationQueryBuilder::default()
             .resource_id("test")
@@ -60,7 +94,7 @@ mod tests {
             .build()
             .unwrap();
         let sql = query.to_sql();
-        assert_eq!(sql, "SELECT * FROM reservations WHERE tstzrange('2021-11-01T22:00:00+00:00', 'infinity') @> timespan AND status = 'unknown'::reservation_status AND resource_id = 'test' ORDER BY lower(timespan) ASC");
+        assert_eq!(sql, "SELECT * FROM reservations WHERE tstzrange('2021-11-01T22:00:00+00:00', 'infinity') @> timespan AND status = 'pending'::reservation_status AND resource_id = 'test' ORDER BY lower(timespan) ASC");
 
         let query = ReservationQueryBuilder::default()
             .resource_id("test")
@@ -68,6 +102,6 @@ mod tests {
             .build()
             .unwrap();
         let sql = query.to_sql();
-        assert_eq!(sql, "SELECT * FROM reservations WHERE tstzrange('-infinity', '2021-11-01T23:00:00+00:00') @> timespan AND status = 'unknown'::reservation_status AND resource_id = 'test' ORDER BY lower(timespan) ASC");
+        assert_eq!(sql, "SELECT * FROM reservations WHERE tstzrange('-infinity', '2021-11-01T23:00:00+00:00') @> timespan AND status = 'pending'::reservation_status AND resource_id = 'test' ORDER BY lower(timespan) ASC");
     }
 }

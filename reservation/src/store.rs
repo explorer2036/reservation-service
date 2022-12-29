@@ -1,5 +1,5 @@
 use crate::{Reservation, ReservationStore};
-use abi::ToSql;
+use abi::{Normalizer, ToSql, Validator};
 use async_trait::async_trait;
 use futures::StreamExt;
 use sqlx::{Either, Row};
@@ -99,9 +99,13 @@ impl Reservation for ReservationStore {
 
     async fn filter(
         &self,
-        _filter: abi::ReservationFilter,
+        mut filter: abi::ReservationFilter,
     ) -> Result<Vec<abi::Reservation>, abi::Error> {
-        todo!()
+        filter.normalize()?;
+
+        let sql = filter.to_sql();
+        let reservations = sqlx::query_as(&sql).fetch_all(&self.pool).await?;
+        Ok(reservations.into_iter().collect())
     }
 }
 
@@ -117,7 +121,8 @@ mod tests {
 
     use super::*;
     use abi::{
-        ReservationConflict, ReservationConflictInfo, ReservationQueryBuilder, ReservationWindow,
+        ReservationConflict, ReservationConflictInfo, ReservationFilterBuilder,
+        ReservationQueryBuilder, ReservationWindow,
     };
     use prost_types::Timestamp;
     use sqlx::PgPool;
@@ -223,6 +228,7 @@ mod tests {
         let pool = db.get_pool().await;
         let (reservation, store) =
             make_alon_reservation(pool.clone(), abi::ReservationStatus::Pending).await;
+
         let query = ReservationQueryBuilder::default()
             .user_id("alon")
             .start("2021-11-01T15:00:00-0700".parse::<Timestamp>().unwrap())
@@ -230,10 +236,36 @@ mod tests {
             .status(abi::ReservationStatus::Pending as i32)
             .build()
             .unwrap();
-
         let mut rx = store.query(query).await;
         assert_eq!(rx.recv().await, Some(Ok(reservation.clone())));
         assert_eq!(rx.recv().await, None);
+
+        // if window is not in range, should return empty
+        let query = ReservationQueryBuilder::default()
+            .user_id("alon")
+            .start("2023-01-01T15:00:00-0700".parse::<Timestamp>().unwrap())
+            .end("2023-02-01T12:00:00-0700".parse::<Timestamp>().unwrap())
+            .status(abi::ReservationStatus::Pending as i32)
+            .build()
+            .unwrap();
+        let mut rx = store.query(query).await;
+        assert_eq!(rx.recv().await, None);
+    }
+
+    #[tokio::test]
+    async fn filter_reservations_should_work() {
+        let db = init_db();
+        let pool = db.get_pool().await;
+        let (reservation, store) =
+            make_alon_reservation(pool.clone(), abi::ReservationStatus::Pending).await;
+        let filter = ReservationFilterBuilder::default()
+            .user_id("alon")
+            .status(abi::ReservationStatus::Pending as i32)
+            .cursor(reservation.id)
+            .build()
+            .unwrap();
+        let reservations = store.filter(filter).await.unwrap();
+        assert_eq!(reservations, vec![reservation]);
     }
 
     // private none test functions

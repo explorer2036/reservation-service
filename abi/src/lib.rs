@@ -8,6 +8,28 @@ pub use pb::*;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use prost_types::Timestamp;
 
+pub type ReservationId = i64;
+pub type UserId = String;
+pub type ResourceId = String;
+
+/// validate the data structure, raise error if invalid
+pub trait Validator {
+    fn validate(&self) -> Result<(), Error>;
+}
+
+/// validate and normalize the data structure
+pub trait Normalizer: Validator {
+    /// caller should call normalize to make sure the data structure is ready to use
+    fn normalize(&mut self) -> Result<(), Error> {
+        self.validate()?;
+        self.do_normalize();
+        Ok(())
+    }
+
+    /// user shall implement do_normalize() to normalize the data structure
+    fn do_normalize(&mut self);
+}
+
 pub trait ToSql {
     fn to_sql(&self) -> String;
 }
@@ -37,5 +59,15 @@ pub fn convert_to_timestamp(dt: DateTime<Utc>) -> Timestamp {
     Timestamp {
         seconds: dt.timestamp(),
         nanos: dt.timestamp_subsec_nanos() as i32,
+    }
+}
+
+impl Validator for ReservationId {
+    fn validate(&self) -> Result<(), Error> {
+        if *self <= 0 {
+            Err(Error::InvalidReservationId(*self))
+        } else {
+            Ok(())
+        }
     }
 }
