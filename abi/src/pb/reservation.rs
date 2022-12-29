@@ -43,7 +43,9 @@ pub struct ReserveResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateRequest {
-    #[prost(string, tag = "1")]
+    #[prost(int64, tag = "1")]
+    pub id: i64,
+    #[prost(string, tag = "2")]
     pub note: ::prost::alloc::string::String,
 }
 /// Updated reservation will be returned in UpdateResponse

@@ -20,6 +20,8 @@ sqlx = { version = "0.6.2", features = [
     "chrono",
     "uuid",
 ] }
+serde = { version = "1.0.152", features = ["derive"] }
+serde_yaml = "0.9.16"
 
 [build-dependencies]
 proto-builder-trait = "0.5.0"

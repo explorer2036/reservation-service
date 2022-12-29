@@ -6,3 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+abi = { version = "0.1.0", path = "../abi" }
+anyhow = "1.0.68"
+futures = { version = "0.3.25", default-features = false }
+reservation = { version = "0.1.0", path = "../reservation" }
+shellexpand = "3.0.0"
+sqlx-db-tester = "0.3.1"
+tokio = { version = "1.23.0", features = ["full"] }
+tonic = { version = "0.8.3", features = ["tokio-rustls", "gzip"] }

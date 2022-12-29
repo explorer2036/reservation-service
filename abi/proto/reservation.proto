@@ -50,7 +50,8 @@ message ReserveResponse {
 
 // To update a reservation, send an UpdateRequest. Only note is updatable.
 message UpdateRequest {
-    string note = 1;
+    int64 id = 1;
+    string note = 2;
 }
 
 // Updated reservation will be returned in UpdateResponse

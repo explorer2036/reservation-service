@@ -1,8 +1,8 @@
 use crate::{Reservation, ReservationStore};
-use abi::{Normalizer, ToSql, Validator};
+use abi::{DbConfig, Normalizer, ToSql, Validator};
 use async_trait::async_trait;
 use futures::StreamExt;
-use sqlx::{Either, Row};
+use sqlx::{postgres::PgPoolOptions, Either, Row};
 use tokio::sync::mpsc;
 use tracing::{info, log::warn};
 
@@ -33,6 +33,8 @@ impl Reservation for ReservationStore {
     }
 
     async fn confirm(&self, id: i64) -> Result<abi::Reservation, abi::Error> {
+        id.validate()?;
+
         let sql = "UPDATE reservations SET status = 'confirmed' WHERE id = $1 AND status = 'pending' RETURNING *";
         let reservation: abi::Reservation =
             sqlx::query_as(sql).bind(id).fetch_one(&self.pool).await?;
@@ -40,6 +42,8 @@ impl Reservation for ReservationStore {
     }
 
     async fn update(&self, id: i64, note: String) -> Result<abi::Reservation, abi::Error> {
+        id.validate()?;
+
         let sql = "UPDATE reservations SET note = $1 WHERE id = $2 RETURNING *";
         let reservation: abi::Reservation = sqlx::query_as(sql)
             .bind(note)
@@ -49,13 +53,17 @@ impl Reservation for ReservationStore {
         Ok(reservation)
     }
 
-    async fn delete(&self, id: i64) -> Result<(), abi::Error> {
-        let sql = "DELETE FROM reservations WHERE id = $1";
-        sqlx::query(sql).bind(id).execute(&self.pool).await?;
-        Ok(())
+    async fn delete(&self, id: i64) -> Result<abi::Reservation, abi::Error> {
+        id.validate()?;
+
+        let sql = "DELETE FROM reservations WHERE id = $1 RETURNING *";
+        let reservation = sqlx::query_as(sql).bind(id).fetch_one(&self.pool).await?;
+        Ok(reservation)
     }
 
     async fn get(&self, id: i64) -> Result<abi::Reservation, abi::Error> {
+        id.validate()?;
+
         let sql = "SELECT * FROM reservations WHERE id = $1";
         let reservation: abi::Reservation =
             sqlx::query_as(sql).bind(id).fetch_one(&self.pool).await?;
@@ -112,6 +120,15 @@ impl Reservation for ReservationStore {
 impl ReservationStore {
     pub fn new(pool: sqlx::PgPool) -> Self {
         Self { pool }
+    }
+
+    pub async fn from_config(config: &DbConfig) -> Result<Self, abi::Error> {
+        let url = config.url();
+        let pool = PgPoolOptions::default()
+            .max_connections(config.max_connections)
+            .connect(&url)
+            .await?;
+        Ok(Self::new(pool))
     }
 }
 

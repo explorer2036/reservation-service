@@ -21,7 +21,7 @@ pub trait Reservation {
     /// update note
     async fn update(&self, id: i64, note: String) -> Result<abi::Reservation, abi::Error>;
     /// delete reservation
-    async fn delete(&self, id: i64) -> Result<(), abi::Error>;
+    async fn delete(&self, id: i64) -> Result<abi::Reservation, abi::Error>;
     /// get reservation by id
     async fn get(&self, id: i64) -> Result<abi::Reservation, abi::Error>;
     /// query reservations

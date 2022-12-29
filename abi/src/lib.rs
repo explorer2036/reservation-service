@@ -1,7 +1,9 @@
+mod config;
 mod error;
 mod pb;
 mod types;
 
+pub use config::*;
 pub use error::*;
 pub use pb::*;
 
