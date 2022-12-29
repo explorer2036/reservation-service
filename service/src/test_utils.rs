@@ -23,12 +23,6 @@ impl TestConfig {
         config.db.name = db.dbname.clone();
         Self { db, config }
     }
-
-    pub fn with_server_port(port: u16) -> Self {
-        let mut config = TestConfig::default();
-        config.config.server.port = port;
-        config
-    }
 }
 
 impl Default for TestConfig {
